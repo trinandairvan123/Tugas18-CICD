@@ -1,0 +1,33 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+      
+    - name: Build with Maven
+      run: mvn -B package --file pom.xml
+      
+    - name: Run tests
+      run: mvn -B test --file pom.xml
+
+    - name: Deploy to staging
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      uses: appleboy/ssh-action@v0.2.0
+      with:
+        host: ${{ secrets.STAGING_SERVER }}
+        username: ${{ secrets.STAGING_USERNAME }}
+        password: ${{ secrets.STAGING_PASSWORD }}
+        script: |
+          cd /var/www/myapp
+          rm -rf *
+          unzip -q ../myapp.zip
